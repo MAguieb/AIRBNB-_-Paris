@@ -1,6 +1,6 @@
 # AIRBNB_Paris
 
-INTRODUCTION
+### INTRODUCTION
   Airbnb is a very well-known community rental and booking platform for private homes which directly connect hosts and visitors. 
   The site offers a platform for reservations between the person offering his accommodation and the vacationer who wishes to rent it.   
   Founded in 2008 by Americans Brian Chesky and Joe Gebbia, Airbnb was valued at $ 31 billion.  
