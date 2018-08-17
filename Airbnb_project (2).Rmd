@@ -370,16 +370,6 @@ ggplot(Airbnb1, aes(x=number_of_reviews, y = price))+
 We have performed graphical and statistical analysis of Airbnb in PARIS. And our findings show,the most influential features are house specifc information "room type" and house location information "neighborhood".
 Those different variables plays a role on the rental price determination of the hosts. We also found that the amount of reviews do not play any significant importance for the price.
 
-
-# REFERENCES
-
-http://r4ds.had.co.nz/explore-intro.html  
-
-https://cseweb.ucsd.edu/classes/wi17/cse258-a/reports/a052.pdf  
-
-https://rstudio-pubs-static.s3.amazonaws.com/204195_b17b4f8728ef42cba6cda1759602348d.html
-
-
 # ANNEXES  
 
 ```{r, echo=FALSE, fig.height=6, fig.width=9, message=FALSE, warning=FALSE}
