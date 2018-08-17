@@ -1,13 +1,10 @@
 
-# =========================================================================================================
-# MASTER 2 TIDE - PROJET ETUDE_DISCRIPTIVE_AIRBNB 2017-2018
+rm(list=ls(all=TRUE)) 
 
-# =========================================================================================================
-# 
-#
+# =========================== ETUDE DISCRIPTIVE AIRBNB_Paris ===================================== # 
+
 ## download packages and library
 
-rm(list=ls(all=TRUE)) 
 install.packages('tidyverse') 
 install.packages("leaflet", dependencies = TRUE)
 install.packages('knitr', dependencies = TRUE)
@@ -22,9 +19,7 @@ library(scales)
 
 # _____________Importing Data _____________________________________________#
 
-setwd("C:/Users/tranm/Desktop/Master 2 TIDE/Stage SAS-R-Python/R")
 Airbnb <- fread("./Projet R/Airbnb.txt", encoding="UTF-8")
-
 
 #_____________Overview on the datasets_____________________________________#
 
@@ -93,10 +88,10 @@ ggplot(data = Airbnb1, mapping = aes(x = "", y = minimum_nights )) +
 
 summary(Airbnb1$price)
 summary(Airbnb1$minimum_nights)
+
 ###############__________________ GRAPHS _____________________#################
 
 ########__________ Price's Distribution___________######
-
 
 ggplot(Airbnb1, mapping=aes(x=price))+
   geom_histogram(na.rm = TRUE, color = "brown1", fill = "brown1", binwidth=3)+
@@ -162,8 +157,6 @@ ggplot(cor_x, aes(x = variable_x, y = variable_y, fill = correlation)) +
   theme_minimal() +
   my_theme+
   theme (axis.text.x = element_text (angle = 45, vjust = 1, hjust = 1, size = 12))
-
-
 
 ## ____________________Average price / geographical area___________________#
 
