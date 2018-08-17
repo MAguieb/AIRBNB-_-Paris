@@ -1,0 +1,421 @@
+---
+title: "<center>**AIRBNB**</center>"
+author: "<center>By Mereim AGUIEB</center>"
+date: "<center>Paris, 14 october 2017</center>"
+output:
+  html_document:
+    fig_caption: yes
+    number_sections: yes
+  pdf_document:
+    fig_caption: yes
+    fig_height: 4
+    number_sections: yes
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="justify")
+```
+
+\newpage
+
+# INTRODUCTION
+  Airbnb is a very well-known community rental and booking platform for private homes which directly connect hosts and visitors.  The site offers a platform for reservations between the person offering his accommodation and the vacationer who wishes to rent it. Founded in 2008 by Americans Brian Chesky and Joe Gebbia, Airbnb was valued at $ 31 billion.  
+  
+  In this project, by working on the dataset of Airbnb in Paris, we studied, analyzed the data in order to conduct a simple descriptive analysis. Focusing on the price of the rental, we tried to find the mechanics of price determination. 
+   
+# DATASET OVERVIEW
+
+First, let's take a look on the variables that we got in the Airbnb dataset listing (*Table 1*): 
+
+```{r Airbnb, fig.align="center", echo=FALSE, message=FALSE, warning=FALSE}
+library(leaflet)
+library(ggplot2)
+library (dplyr)
+library(stats)
+library (tidyr)
+library (data.table)
+library (scales)
+setwd("C:/Users/Admin/Desktop/dossier_R")
+Airbnb <- fread("../dossier_R/Airbnb.txt", encoding="UTF-8")
+glimpse (Airbnb)
+```
+
+<center>Table 1 : Dataset Overview</center>
+  
+Our dataset contains 16 variables and 56 535 observations. Each row is the descriptions of a Airbnb rental by different modality such as: room type, price, availability, etc, including also the names and the id of hosts. By observing quickly, we can see that there are some variables which contains missing values. Also, there are some variable that we won't need to use. Indeed, id and the host name will never influence the rental price, the same for the variabe "last review". 
+
+
+# MISSING VALUES TREATMENT AND DATA SELECTION 
+
+  
+## Data selection
+  
+  In order to effectively analyse the mechanism of the price, we had done a summary on the dataset to see if there are outliers or missing values in the data. The result shown that there is a column with full of missing values (neighbourhood_group), and since we had already the variable called "neighbourhood" which contains the informations that we need, we decided to do not take into account the variable "neighbourhood_group", as same as the variable "last_review".    
+  
+
+```{r summary, fig.height=4.5, fig.width=6, message=FALSE, warning=FALSE, include=FALSE}
+summary(Airbnb)
+```
+
+## Missing Values Treatment
+
+In our dataset, the variable "reviews_per_month" has missing values. Theses values represent about 25% of the total of observations. For that reason, we couldn't delete all the data which have missing values because we will lose a lot of information. Instead, we used the options "na.rm = TRUE" and "na.omit()" when executing the R code. 
+
+```{r, include=FALSE}
+###########______________ Rename column ________________########
+
+names(Airbnb)[2]<-"Adress"
+summary(Airbnb)
+
+##########___________NA Treatment and Data Selection____________######### 
+
+Airbnb1 <- Airbnb %>% 
+  select(- c(neighbourhood_group,last_review))
+Airbnb1 %>% count (is.na (reviews_per_month))
+
+```
+
+  
+## Outliers studies 
+
+In this section, we will find out if there are extremes values in our database, and if theses values are outliers or not. For a better visualization, we went throught the boxplots (*Figure 1*).    
+
+```{r, echo=FALSE, fig.height=3, fig.width=3, message=FALSE, warning=FALSE, fig.show = 'hold'}
+#########_________________Visualization of Outliers _(extremes)_ values by boxplots_______####
+
+my_theme <-   theme_light() +                                    ## Define a Theme
+  theme(axis.title = element_text(face = "bold"),
+        axis.title.x = element_text(color = "coral2"),
+        axis.title.y = element_text(color = "coral2"),
+        plot.title = element_text(color = "firebrick", vjust=0.5, hjust=0.5, size = 8, face = "bold"),
+        axis.text.x = element_text(face = "italic"),
+        plot.caption = element_text( face = "italic", colour = "coral", size = 10, hjust = 1))
+
+ggplot(data = Airbnb1, mapping = aes(x = "", y = price )) +
+  geom_boxplot(color = "coral3")+
+  ggtitle ("Price's boxplot")+
+  labs (caption = "based on data from Airbnb ")+
+  theme_minimal() +
+  my_theme
+
+ggplot(data = Airbnb1, mapping = aes(x = "", y = minimum_nights )) +
+  geom_boxplot(color = "coral3")+
+  ggtitle ("Minimum_nights's boxplot")+
+  labs (caption = "based on data from Airbnb ")+
+  theme_minimal() +
+  my_theme
+```
+
+<center>Figure 1: Box plots</center>
+
+
+Through theses box plots, we can clearly see the extreme values. In the price's boxplot, the maximum values was around 8000 euros while the minimum is 0. Logically, it is impossible to have a price of 8000 euros a night, so we decided to exclure these values which means that we will keep the data where the price is less than 3000 euros. For the extreme values in the minimum_night's boxplot, we thought that it was potentially outliers because since "minimum_nights" means the minimum number of nights required by the host to the visitors, a rental that is required of 10 000 nights minimum to be rented is definitely nonexistent. Because of that reason, we decided to leep only thoses rentals where the minimum nights required are less than or equal to 365 (which means 1 year).  
+  
+```{r, message=FALSE, warning=FALSE, include=FALSE}
+############_____________Outliers Suppression_________###########
+
+Airbnb1 <- Airbnb1 %>% 
+  filter(price >= 0 & price < 3000, minimum_nights <= 365 )
+
+ggplot(data = Airbnb1, mapping = aes(x = "", y = price )) +
+  geom_boxplot()+
+  ggtitle ("Price's boxplot")+
+  labs (caption = "based on data from Airbnb ")+
+  theme_minimal() +
+  my_theme
+
+ggplot(data = Airbnb1, mapping = aes(x = "", y = minimum_nights )) +
+  geom_boxplot() +
+  ggtitle ("Minimum_nights's boxplot")+
+  labs (caption = "based on data from Airbnb ")+
+  theme_minimal() +
+  my_theme
+```
+  
+  
+# DATA VISUALIZATION AND ANALYSIS    
+
+## Price's disribution
+
+Since we will focus our project on the rental price, we thought that it will be interesting to see how the prices are distributed (*Figure 2*). The first graph in Figure 2 shows the distribution of price among the whole dataset, where we can see that most of the prices are in range [0,300]. To deeply understanding the price distribution, we constructed the second graph that corresponds well to the range [0,300] and then the range [0,200]. Through theses graph, we concluded that the hosts tend to fix their price at a round number such as : 50, 60,..
+
+
+```{r, echo=FALSE, fig.height=2, fig.show='hold', fig.width=2, message=FALSE, warning=FALSE}
+########__________ Price's Distribution___________######
+
+ggplot(Airbnb1, mapping=aes(x=price))+
+  geom_histogram(na.rm = TRUE, color = "brown1", fill = "brown1", binwidth=3)+
+  ylim(0,2000)+
+  ggtitle("Price Distribution Overview")+
+  ylab("count price")+
+  labs (caption = "based on data from Airbnb ")+
+  theme_minimal() +
+  my_theme+
+  theme (panel.background = element_rect (fill = "gray81"),
+         panel.grid.major = element_blank(),
+         panel.grid.minor.y = element_line(size = 0.5))
+
+ggplot(data = Airbnb1, mapping=aes(x=price))+
+  geom_histogram(na.rm=TRUE, color = "brown1", fill = "brown1",binwidth=5)+
+  xlim(1,300)+
+  ggtitle("Price Distribution (0 - 300)")+
+  ylab("count price")+
+  labs (caption = "based on data from Airbnb ")+
+  theme_minimal() +
+  my_theme+
+  theme (panel.background = element_rect (fill = "gray81"),
+         panel.grid.major = element_blank(),
+         panel.grid.minor.y = element_line(size = 0.5))
+  
+ggplot(Airbnb1)+
+  geom_histogram(mapping=aes(x=price), na.rm=TRUE, color = "brown1", fill = "white", binwidth=5)+
+  xlim(1,200)+
+  ggtitle("Price Distribution (0 - 200)")+
+  ylab("count price")+
+  labs (caption = "based on data from Airbnb ")+
+  theme_minimal() +
+  my_theme+
+  theme (panel.background = element_rect (fill = "gray81"),
+         panel.grid.major = element_blank(),
+         panel.grid.minor.y = element_line(size = 0.5))
+```
+
+<center>Figure 2: Price's Distribution</center>
+
+
+
+## Correlation Analysis
+
+```{r Correlation, echo=FALSE, message=FALSE, warning=FALSE}
+############___________________ CORRELATION MATRIX __________________##############
+
+### Design a table that contains only numeric variables interested
+
+Airbnb_num<- Airbnb1 %>% select_if(is.numeric)%>%
+  select (-c(id, host_id))
+
+
+### Matrix of linear correlations 
+
+cor_x <- cor(Airbnb_num %>%na.omit ()) %>%                      # Calculate the correlation between the set of variables in the Airbnb_num table
+  as.data.frame() %>%                                           # transform the results into a dataframe
+  mutate(variable_x = rownames(.)) %>% 
+  gather(variable_y, correlation, colnames(Airbnb_num))
+
+
+
+ggplot(cor_x, aes(x = variable_x, y = variable_y, fill = correlation)) +
+  geom_tile(color = "white", show.legend = T) +
+  geom_text(aes(label = correlation %>% round(2)), color = "black") +
+  labs(x = NULL, y = NULL) +
+  scale_fill_gradient(low = "white", high  = "firebrick2",
+                      space = "Lab", name = "Correlation \n" ) +
+  ggtitle ("CORRELATION MATRIX")+
+  labs (caption = "based on data from Airbnb " )+
+  theme_minimal() +
+  my_theme+
+  theme (axis.text.x = element_text (angle = 45, vjust = 1, hjust = 1, size = 10))
+```
+<center>Figure 3: Correlation Matrix</center>
+
+
+The figure above (*Figure 3*) is representing the correlation matrix of the numeric variables in the dataset. We exclured 2 variables : "id" and "host_id" which are also determined as numeric variables but have no meaning in our analysis.  
+
+Through this correlation matrix, we found that the price variable is most correlated with the variable "calculated_host_listings_count" (21%), and then with the variable "availability_365" (18%). Howerver, the correlations are not very strong.  
+
+## Average price per geographical area  
+
+Observing the map below (*Figure 4*), we can see that the prices are cleary changing by neighbourhood.In the districts which is located in the center of Paris or which contains tourist monuments (Elys?e, Louvre, H?tel-de-ville), the average price are very high, in the range of 120- 140 euros. The more an apartment is located far away from Paris, the lower its price.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+price_neighbour <- Airbnb1 %>% group_by(neighbourhood) %>%
+                          summarise_at(vars(price,latitude,longitude),mean)
+
+# Map representation
+
+vue<- leaflet(price_neighbour%>% na.omit()) %>% addTiles() %>% 
+  setView(lng = 2.292551, lat = 48.858259, zoom = 12)%>%
+  addCircles(lat = ~ latitude, lng = ~ longitude, radius = ~ sqrt(price) * 50, opacity = 0.02, fillOpacity = 0.48, fillColor = "red", popup = ~ paste(neighbourhood, price %>% round (2),"Euros"))
+vue
+
+```
+
+<center>Figure 4: Average Price per Districts Map</center>
+
+
+## Average Price per Room type and Neighbourhood 
+
+### Room_Type Distribution 
+
+Airbnb hosts can list entire homes/apartments, private or shared rooms.As we can notice, the average price of an apartment were close to 96 euros per day but did vary a lot based on room type and the neighbourhood. The largest and most common room is "entire homes" (rent a complete apartment) and represents 85.8 % of all observations.The next group is "private rooms" how present 13.1 percent of the dataset,here you rent a room in an apartment where the host also lives.Finally "shared rooms" stand for 1 % of the observations. (*Figure 5*)
+
+```{r, echo=FALSE, fig.height=4, fig.width=6, message=FALSE, warning=FALSE}
+Airbnb_room <- Airbnb1  %>% 
+  count(room_type) %>% 
+  mutate(percent= n/sum(n))
+
+ggplot(Airbnb_room, aes(x=room_type, y = percent, fill = room_type))+
+  geom_bar(stat = "identity", fill = c ("lightslateblue", "steelblue1", "steelblue4"))+
+  geom_text(label = scales::percent(Airbnb_room$percent), vjust = 1) +
+  labs(title = "Room Distribution", y = "Percent", x = "Room_Type")+
+  labs (caption = "based on data from Airbnb ")+
+  my_theme+
+  theme ( axis.text.x = element_text ( vjust = 1, hjust = 1, size = 12),
+          panel.background = element_rect (fill = "whitesmoke"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor.y = element_line(size = 0.5))
+```
+<center>Figure 5: Room Distribution</center>
+
+ 
+
+### Distribution of Price per Room type :
+
+The rental price varies also by room type. Obviously renting an entire apartment is much more expensive than renting a room or even a shared room. The average rental price of an apartment is 102 euros while it is 39.4 euros for shared room. (*Annexe 2*)
+
+
+```{r, message=FALSE, warning=FALSE, include=FALSE}
+price_room <- Airbnb1 %>% group_by(room_type) %>%
+  summarise (moy_prix = mean (price))
+
+
+ggplot (price_room %>% na.omit(), aes (x=room_type,y=moy_prix, fill = room_type))+
+  geom_bar(stat = "identity", size = 0.5, fill = c ("magenta3", "maroon2", "orchid1"))+
+  ggtitle("Price Analysis By Room Type")+
+  labs (caption = "based on data from Airbnb ")+
+  geom_text(aes (label = moy_prix %>% round (2)), color = "darkred", size = 6, vjust = 1, hjust = 0.5, size = 1)+
+  labs (y = "Average Price")+
+  my_theme+
+  theme ( axis.text.x = element_text ( vjust = 1, hjust = 1, size = 12),
+          panel.background = element_rect (fill = "whitesmoke"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor.y = element_line(size = 0.5))
+```
+
+### The Differences in prices 
+
+To show the differences in prices we made a graph where we crossed the three variables price, room_type and neighbourhood (*Figure 6*).
+As we can see the observations are spread all over the city,the neighborhoods like ( Elys?e, Louvre) are the most expensive places to rent a room or home.Not surprisingly this tells us, that the location of our apartments does play a huge influence on the price.
+However, the prices decreased and stay so close when we leave the city center.
+The cheapest parts of the city are all the outer parts of Paris.
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+price_room1<- Airbnb1 %>% group_by(room_type,neighbourhood) %>%
+  summarise (moy_prix = mean (price))
+
+ggplot(price_room1, mapping = aes(x = neighbourhood, y = moy_prix, fill = room_type)) + 
+  geom_bar(stat = "identity",size = 8, position = position_dodge())+
+  ggtitle("Price Analysis By Room Type & By District")+
+  labs (caption = "based on data from Airbnb ")+
+  labs (y = "Average Price")+
+  my_theme+
+  theme ( axis.text.x = element_text ( angle = 45, vjust = 1, hjust = 1, size = 12),
+          panel.background = element_rect (fill = "whitesmoke"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor.y = element_line(size = 0.5))
+
+
+```
+<center>Figure 6</center>
+
+\newpage
+
+### Map of offer per district distribution 
+
+We can notice that as far as we are near at the city center as much as the supply decreases (Louvre 2.09%,Elys?e 2.65%),and as far from the center the offer increases(Buttes-Montmartre 11.45 %).
+This logic supports the hypothesis of supply and demand in relation to price : the regions with the fewest offers have the highest prices. (*Figure 7*)
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+district<- Airbnb1%>%group_by(neighbourhood)%>%summarise_at(vars(latitude,longitude),mean)
+
+C_neighnrh<-Airbnb1 %>% 
+  count(neighbourhood)%>% 
+  mutate(percent= n/sum(n)*100)
+
+offre_zone<- leaflet(C_neighnrh%>% na.omit()) %>% addTiles() %>% 
+  setView(lng = 2.292551, lat = 48.858259, zoom = 12)%>%
+  addCircles(lat = ~ district$latitude, lng = ~ district$longitude, radius = ~ sqrt(n)* 10, opacity = 0.02, fillOpacity = 0.48, fillColor = "red", popup = ~ paste(neighbourhood,percent %>% round(2),"% offer by region"))
+offre_zone
+```
+
+<center>Figure 7</center>
+
+## Number of reviews and price
+
+Graph (*Figure 8*) shows the correlation between price and number of reviews based on the room types. We can notice, that apartments with very few reviews tends to be priced higher.
+
+One reason for this could be: these apartments are very expensive and people tend to see the cheapest deals,or that poeple wasn't satisfied with their stay. 
+We also find that apartments with a lot of reviews seems to be priced lower. 
+However, the trend is not linear, and we can see that when the number of reviews gets above 50 where the price is close to the average price,so a huge number of reviews doesn't leads to higher prices. 
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(Airbnb1, aes(x=number_of_reviews, y = price))+
+  geom_point(stat = "identity", size = 3, show.legend = F, fill = "firebrick", color = "firebrick")+
+  facet_wrap(~ room_type, nrow = 2)+
+  labs (caption = "based on data from Airbnb ")+
+  my_theme+
+  theme ( axis.text.x = element_text ( vjust = 1, hjust = 1, size = 12),
+          panel.background = element_rect (fill = "whitesmoke"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor.y = element_line(size = 0.5))
+
+```
+<center>Figure 8</center>
+
+# CONCLUSION 
+
+We have performed graphical and statistical analysis of Airbnb in PARIS. And our findings show,the most influential features are house specifc information "room type" and house location information "neighborhood".
+Those different variables plays a role on the rental price determination of the hosts. We also found that the amount of reviews do not play any significant importance for the price.
+
+
+# REFERENCES
+
+http://r4ds.had.co.nz/explore-intro.html  
+
+https://cseweb.ucsd.edu/classes/wi17/cse258-a/reports/a052.pdf  
+
+https://rstudio-pubs-static.s3.amazonaws.com/204195_b17b4f8728ef42cba6cda1759602348d.html
+
+
+# ANNEXES  
+
+```{r, echo=FALSE, fig.height=6, fig.width=9, message=FALSE, warning=FALSE}
+# Histogram Representation
+
+ggplot (price_neighbour %>% na.omit(), aes (x=neighbourhood, y = price, fill = neighbourhood))+
+  geom_bar(stat = "identity", size = 2)+
+  geom_text(aes (label = price %>% round (2)), color = "darkred", vjust = -0.5, hjust = 0.5, size = 2)+
+  ggtitle("Price Analysis By Neighbourhood")+
+  labs (y = "Average Price")+
+  theme_minimal()+
+  my_theme+
+  theme ( axis.text.x = element_text (angle = 45, vjust = 1, hjust = 1, size = 12),
+          panel.background = element_rect (fill = "gray81"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor.y = element_line(size = 0.5))+
+         labs (caption = "based on data from Airbnb " )
+
+```
+<center>Annexe 1</center>
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+ggplot (price_room %>% na.omit(), aes (x=room_type,y=moy_prix, fill = room_type))+
+  geom_bar(stat = "identity", size = 0.5, fill = c ("magenta3", "maroon2", "orchid1"))+
+  ggtitle("Price Analysis By Room Type")+
+  labs (caption = "based on data from Airbnb ")+
+  geom_text(aes (label = moy_prix %>% round (2)), color = "darkred", size = 6, vjust = 1, hjust = 0.5, size = 1)+
+  labs (y = "Average Price")+
+  my_theme+
+  theme ( axis.text.x = element_text ( vjust = 1, hjust = 1, size = 12),
+          panel.background = element_rect (fill = "whitesmoke"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor.y = element_line(size = 0.5))
+```
+
+<center>Annexe 2</center>
+
+
